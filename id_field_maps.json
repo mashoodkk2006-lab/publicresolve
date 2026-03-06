@@ -1,0 +1,57 @@
+{
+  "version": "1.0",
+  "meta": {
+    "coordinate_mode": "relative",
+    "units": "fraction (0-1)",
+    "origin": "top-left",
+    "notes": "x,y = top-left of box; width/height are fractions of full image width/height"
+  },
+  "templates": {
+    "PAN": {
+      "variants": [
+        {
+          "name": "standard_pan_front",
+          "notes": "Typical PAN card layout (landscape)",
+          "name_zone": { "x": 0.12, "y": 0.28, "width": 0.60, "height": 0.12 }
+        }
+      ]
+    },
+    "AADHAAR": {
+      "variants": [
+        {
+          "name": "portrait_aadhaar_standard",
+          "notes": "Typical Aadhaar portrait layout",
+          "name_zone": { "x": 0.08, "y": 0.20, "width": 0.84, "height": 0.14 }
+        },
+        {
+          "name": "landscape_aadhaar",
+          "notes": "Alternate horizontal crop",
+          "name_zone": { "x": 0.10, "y": 0.18, "width": 0.80, "height": 0.12 }
+        }
+      ]
+    },
+    "VOTER_ID": {
+      "variants": [
+        {
+          "name": "standard_voter",
+          "notes": "Common voter ID layout",
+          "name_zone": { "x": 0.14, "y": 0.24, "width": 0.68, "height": 0.12 }
+        }
+      ]
+    },
+    "DRIVING_LICENSE": {
+      "variants": [
+        {
+          "name": "standard_dl",
+          "notes": "Driving license (varied designs)",
+          "name_zone": { "x": 0.12, "y": 0.22, "width": 0.70, "height": 0.12 }
+        }
+      ]
+    }
+  },
+  "usage": {
+    "algorithm": "1) Detect ID type -> choose best-matching variant by template matching or keywords. 2) Convert relative box to absolute pixels and expand by ~10% padding. 3) Crop at 2x resolution (upscale) and run OCR with letter whitelist. 4) Store raw + cleaned text and confidence components.",
+    "confidence_fields": ["ocr_confidence", "regex_pass", "heuristic_score"],
+    "example_regex_for_name": "^[A-Za-z .'\-]{2,100}$"
+  }
+}

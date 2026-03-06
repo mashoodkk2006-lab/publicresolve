@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PublicResolve — Login</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="container" style="max-width:400px;margin:80px auto;">
+    <h1>User Login</h1>
+    <div id="alert" class="alert"></div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="emailOrPhone">Email or Phone</label>
+        <input type="text" id="emailOrPhone" name="emailOrPhone" placeholder="you@example.com or 1234567890" required />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required />
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">Login</button>
+    </form>
+    <p style="margin-top:1rem;">Don't have an account? <a href="/register_new.html">Register</a></p>
+  </div>
+  <script src="/js/utils.js"></script>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const emailOrPhone = document.getElementById('emailOrPhone').value.trim();
+      const password = document.getElementById('password').value;
+      if (!emailOrPhone || !password) {
+        showAlert('Email/phone and password are required','error');
+        return;
+      }
+      try {
+        showLoading();
+        const result = await apiCall('POST','/login',{emailOrPhone,password});
+        if (result.success) {
+          showAlert('Login successful, redirecting...','success');
+          setTimeout(()=>{ window.location.href = result.redirect; },1500);
+        } else {
+          showAlert(result.error || 'Login failed','error');
+        }
+      } catch (err) {
+        console.error(err);
+        showAlert('Server error','error');
+      } finally {
+        hideLoading();
+      }
+    });
+  </script>
+</body>
+</html>

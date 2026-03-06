@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PublicResolve — Where complaints turn into solutions. | Admin Login</title>
+  <meta name="description" content="PublicResolve — Where complaints turn into solutions.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container" style="max-width: 450px; margin-top: 60px;">
+    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 40px; border-radius: 15px; box-shadow: 0 5px 30px rgba(0,0,0,0.2);">
+      <h1 style="color: white; text-align: center; margin-bottom: 10px;">🔐 Admin Login</h1>
+      <p style="text-align: center; color: rgba(255,255,255,0.9); margin-bottom: 30px;">Administrators Only</p>
+
+      <div id="alert" class="alert"></div>
+
+      <form id="adminLoginForm">
+        <div class="form-group">
+          <label for="username" style="color: white; font-weight: 600;">Username</label>
+          <input type="text" id="username" name="username" placeholder="Enter admin username" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password" style="color: white; font-weight: 600;">Password</label>
+          <input type="password" id="password" name="password" placeholder="Enter admin password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; background: white; color: #f5576c; font-weight: bold; padding: 12px; font-size: 16px;">Admin Login</button>
+      </form>
+
+      <p class="text-center mt-20">
+        <a href="/" style="color: rgba(255,255,255,0.9); text-decoration: none;">← Back to Home</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="/js/utils.js"></script>
+  <script>
+    document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!username || !password) {
+        showAlert('Username and password are required', 'error');
+        return;
+      }
+
+      try {
+        showLoading();
+        const response = await fetch('/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          // Extract district from username (e.g., adminofThiruvananthapuram -> Thiruvananthapuram)
+          const districtMatch = username.match(/adminof(.+)/i);
+          if (districtMatch) {
+            const district = districtMatch[1];
+            sessionStorage.setItem('adminDistrict', district);
+          }
+          
+          showAlert('Admin login successful! Redirecting...', 'success');
+          setTimeout(() => {
+            window.location.href = result.redirect;
+          }, 1500);
+        } else {
+          showAlert(result.error || 'Login failed. Check username and password.', 'error');
+        }
+      } catch (error) {
+        console.error('Admin login error:', error);
+        showAlert('An error occurred during login: ' + error.message, 'error');
+      } finally {
+        hideLoading();
+      }
+    });
+  </script>
+</body>
+</html>

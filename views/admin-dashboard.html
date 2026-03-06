@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PublicResolve — Where complaints turn into solutions. | Admin Dashboard</title>
+  <meta name="description" content="PublicResolve — Where complaints turn into solutions.">
+  <link rel="stylesheet" href="/css/style.css">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <!-- Leaflet Routing Machine CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.min.css" />
+</head>
+<body style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0;">
+  <div class="navbar">
+    <h1>PublicResolve — Admin Dashboard - <span id="districtTitle"></span></h1>
+    <div style="font-size:12px;color:rgba(255,255,255,0.9);margin-top:2px;">Where complaints turn into solutions.</div>
+    <div class="navbar-links">
+      <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+      <button onclick="viewHeadAdminMessages()">💬 Messages</button>
+      <button onclick="adminLogout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="large-container">
+    <div class="dashboard-container">
+      <div id="alert" class="alert"></div>
+
+      <h2>All Complaints</h2>
+
+      <div id="complaintsTable"></div>
+    </div>
+  </div>
+
+  <script src="/js/utils.js"></script>
+  <!-- Leaflet JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <!-- Leaflet Routing Machine JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.min.js"></script>
+  <script>
+    async function loadAdminDashboard() {
+      try {
+        showLoading();
+        const result = await apiCall('GET', '/admin/dashboard');
+        
+        // Display district name from session
+        const districtTitle = sessionStorage.getItem('adminDistrict') || 'Loading...';
+        document.getElementById('districtTitle').textContent = districtTitle;
+        
+        const complaints = result.complaints;
+
+        if (complaints.length === 0) {
+          document.getElementById('complaintsTable').innerHTML = '<p class="text-center text-muted">No complaints in ' + districtTitle + ' district yet.</p>';
+          return;
+        }
+
+        let tableHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>User Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Department</th>
+                <th>District</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        complaints.forEach(complaint => {
+          const statusClass = complaint.status.toLowerCase().replace(' ', '-');
+          tableHTML += `
+            <tr>
+              <td>${complaint.id}</td>
+              <td>${complaint.full_name}</td>
+              <td>${complaint.email}</td>
+              <td>${complaint.phone}</td>
+              <td>${complaint.department}</td>
+              <td>${complaint.district || 'N/A'}</td>
+              <td>${complaint.location}</td>
+              <td><span class="card-badge badge-${statusClass}">${complaint.status}</span></td>
+              <td>${formatDate(complaint.created_at)}</td>
+              <td>
+                <button class="btn btn-info btn-small" onclick="viewComplaintMessages(${complaint.id})">Messages</button>
+                <button class="btn btn-secondary btn-small" onclick="viewProof('/image/complaint-proof/${complaint.id}')">Proof</button>
+                <button class="btn btn-success btn-small" onclick="openStatusModal(${complaint.id}, '${complaint.status}')">Status</button>
+                ${complaint.latitude && complaint.longitude ? `<button class="btn btn-primary btn-small" onclick="getDirections(${complaint.latitude}, ${complaint.longitude}, '${complaint.location.replace(/'/g, "\\'")}')">🗺️ Route</button>` : ''}
+              </td>
+            </tr>
+          `;
+        });
+
+        tableHTML += `
+            </tbody>
+          </table>
+        `;
+
+        document.getElementById('complaintsTable').innerHTML = tableHTML;
+      } catch (error) {
+        console.error('Admin dashboard error:', error);
+        showAlert('Failed to load complaints', 'error');
+      } finally {
+        hideLoading();
+      }
+    }
+
+    function viewComplaintProof(imageUrl) {
+      viewProof(imageUrl);
+    }
+
+    function viewComplaintMessages(complaintId) {
+      window.location.href = `/admin-messages.html?id=${complaintId}`;
+    }
+
+    function viewHeadAdminMessages() {
+      window.location.href = '/admin-admin-messages.html';
+    }
+
+    function openStatusModal(complaintId, currentStatus) {
+      const statusOptions = ['Pending', 'In Progress', 'Resolved', 'Rejected', 'Closed'];
+      
+      const modal = document.createElement('div');
+      modal.id = `modal-${complaintId}`;
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      `;
+
+      let modalContent = `
+        <div style="background: white; padding: 30px; border-radius: 10px; max-width: 500px; max-height: 80vh; overflow-y: auto;">
+          <h3>Update Status</h3>
+          <p style="margin-bottom: 20px; color: #666;">Current Status: <strong>${currentStatus}</strong></p>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+      `;
+
+      statusOptions.forEach(status => {
+        if (status !== currentStatus) {
+          const isResolved = status === 'Resolved';
+          modalContent += `
+            <div>
+              <button class="btn btn-info btn-small" style="width: 100%;" onclick="toggleResolvedImageUpload(${complaintId}, '${status}', this)">
+                Change to: ${status}
+              </button>
+              ${isResolved ? `
+                <div id="resolved-upload-${complaintId}" style="display: none; margin-top: 15px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+                  <label style="display: block; margin-bottom: 10px; font-weight: bold;">Upload Proof of Resolution (Optional):</label>
+                  <input type="file" id="resolved-image-${complaintId}" accept="image/*" style="width: 100%; padding: 8px; margin-bottom: 10px;">
+                  <button class="btn btn-success btn-small" style="width: 100%;" onclick="updateComplaintStatus(${complaintId}, '${status}', document.getElementById('resolved-image-${complaintId}').files[0])">
+                    Confirm Resolution
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }
+      });
+
+      modalContent += `
+            <button class="btn btn-secondary btn-small" style="width: 100%; margin-top: 15px;" onclick="closeStatusModal(${complaintId})">Cancel</button>
+          </div>
+        </div>
+      `;
+
+      modal.innerHTML = modalContent;
+      document.body.appendChild(modal);
+    }
+
+    function closeStatusModal(complaintId) {
+      const modal = document.getElementById(`modal-${complaintId}`);
+      if (modal) {
+        modal.remove();
+      }
+    }
+
+    function toggleResolvedImageUpload(complaintId, status, button) {
+      const uploadDiv = document.getElementById(`resolved-upload-${complaintId}`);
+      if (status === 'Resolved' && uploadDiv) {
+        if (uploadDiv.style.display === 'none') {
+          uploadDiv.style.display = 'block';
+          button.style.opacity = '0.5';
+        } else {
+          uploadDiv.style.display = 'none';
+          button.style.opacity = '1';
+        }
+      } else if (status !== 'Resolved') {
+        updateComplaintStatus(complaintId, status);
+      }
+    }
+
+    async function updateComplaintStatus(complaintId, newStatus, imageFile = null) {
+      try {
+        showLoading();
+        
+        let result;
+        if (imageFile) {
+          // Upload with image
+          const formData = new FormData();
+          formData.append('complaintId', complaintId);
+          formData.append('status', newStatus);
+          formData.append('resolved_image', imageFile);
+          result = await apiCallWithFile('POST', '/admin/update-status', formData);
+        } else {
+          // Regular status update
+          result = await apiCall('POST', '/admin/update-status', { 
+            complaintId, 
+            status: newStatus 
+          });
+        }
+
+        if (result.success) {
+          showAlert(`Status updated to ${newStatus}`, 'success');
+          // Remove modal safely
+          const modal = document.getElementById(`modal-${complaintId}`);
+          if (modal) {
+            modal.remove();
+          }
+          // Reload dashboard
+          setTimeout(() => {
+            loadAdminDashboard();
+          }, 500);
+        }
+      } catch (error) {
+        console.error('Status update error:', error);
+        showAlert('Error updating status', 'error');
+      } finally {
+        hideLoading();
+      }
+    }
+
+    function getDirections(lat, lng, address) {
+      // Open a modal with routing map
+      const modal = document.createElement('div');
+      modal.id = 'routeModal';
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+      `;
+
+      modal.innerHTML = `
+        <div style="background: white; padding: 20px; border-radius: 10px; max-width: 90%; max-height: 90%; width: 800px; overflow: hidden; position: relative;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0;">🗺️ Get Directions to: ${address}</h3>
+            <button onclick="document.getElementById('routeModal').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+          </div>
+          <div id="routeMap" style="width: 100%; height: 400px; border-radius: 5px;"></div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+            <button id="routeStartJourney" class="btn btn-success">🚀 Start Journey</button>
+            <button id="routeClear" class="btn btn-warning">🗑️ Clear Route</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+
+      // Initialize routing map in modal
+      setTimeout(() => {
+        initializeRouteMap(lat, lng, address);
+      }, 100);
+    }
+
+    function initializeRouteMap(destLat, destLng, destAddress) {
+      const routeMap = L.map('routeMap').setView([destLat, destLng], 13);
+
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(routeMap);
+
+      // Add destination marker
+      const endMarker = L.marker([destLat, destLng], {
+        icon: L.icon({
+          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41]
+        })
+      }).addTo(routeMap)
+      .bindPopup(`<b>Complaint Location</b><br>${destAddress}`)
+      .openPopup();
+
+      // Store references for clearing
+
+      document.getElementById('routeStartJourney').addEventListener('click', () => {
+        if (!navigator.geolocation) {
+          alert('Geolocation is not supported by your browser');
+          return;
+        }
+
+        // Show loading state
+        const button = document.getElementById('routeStartJourney');
+        const originalText = button.textContent;
+        button.textContent = 'Getting location...';
+        button.disabled = true;
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const startLat = position.coords.latitude;
+            const startLng = position.coords.longitude;
+            
+            // Open in Google Maps with directions
+            const googleMapsUrl = `https://www.google.com/maps/dir/${startLat},${startLng}/${destLat},${destLng}`;
+            window.open(googleMapsUrl, '_blank');
+            
+            button.textContent = originalText;
+            button.disabled = false;
+          },
+          (error) => {
+            console.error('Geolocation error:', error);
+            let errorMessage = 'Unable to get your location.';
+            switch(error.code) {
+              case error.PERMISSION_DENIED:
+                errorMessage = 'Location access denied. Please enable location permissions and try again.';
+                break;
+              case error.POSITION_UNAVAILABLE:
+                errorMessage = 'Location information is unavailable. Please try again.';
+                break;
+              case error.TIMEOUT:
+                errorMessage = 'Location request timed out. Please try again.';
+                break;
+            }
+            alert(errorMessage);
+            button.textContent = originalText;
+            button.disabled = false;
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 20000,
+            maximumAge: 30000
+          }
+        );
+      });
+
+      document.getElementById('routeClear').addEventListener('click', () => {
+        // Clear existing route
+        if (window.currentRoutingControl) {
+          routeMap.removeControl(window.currentRoutingControl);
+          window.currentRoutingControl = null;
+        }
+        if (window.currentStartMarker) {
+          routeMap.removeLayer(window.currentStartMarker);
+          window.currentStartMarker = null;
+        }
+        alert('Route cleared successfully');
+      });
+
+      // Make variables accessible to createRouteInModal
+      window.currentRoutingControl = routingControl;
+      window.currentStartMarker = startMarker;
+    }
+
+    function createRouteInModal(map, startLat, startLng, destLat, destLng) {
+      // Clear existing route
+      if (window.currentRoutingControl) {
+        map.removeControl(window.currentRoutingControl);
+        window.currentRoutingControl = null;
+      }
+      if (window.currentStartMarker) {
+        map.removeLayer(window.currentStartMarker);
+        window.currentStartMarker = null;
+      }
+
+      // Add start marker
+      window.currentStartMarker = L.marker([startLat, startLng], {
+        icon: L.icon({
+          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41]
+        })
+      }).addTo(map)
+      .bindPopup('<b>Your Starting Point</b>');
+
+      // Create routing control
+      window.currentRoutingControl = L.Routing.control({
+        waypoints: [
+          L.latLng(startLat, startLng),
+          L.latLng(destLat, destLng)
+        ],
+        routeWhileDragging: false,
+        createMarker: () => null,
+        lineOptions: {
+          styles: [{ color: '#007bff', weight: 6, opacity: 0.8 }]
+        }
+      }).addTo(map);
+
+      window.currentRoutingControl.on('routesfound', function(e) {
+        // Route calculated successfully - show start journey button
+        document.getElementById('routeStartJourney').style.display = 'inline-block';
+      });
+
+      window.currentRoutingControl.on('routingerror', function(e) {
+        console.error('Routing error:', e);
+        alert('Unable to calculate route. Please try different start/end points.');
+      });
+    }
+
+    // Load admin dashboard on page load
+    window.addEventListener('load', loadAdminDashboard);
+  </script>
+</body>
+</html>

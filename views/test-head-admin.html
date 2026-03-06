@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PublicResolve — Where complaints turn into solutions. | Head Admin System Test</title>
+  <meta name="description" content="PublicResolve — Where complaints turn into solutions.">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 10px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    .test-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .test-section h2 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    
+    .test-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    button.secondary {
+      background: #f5576c;
+    }
+    
+    button.secondary:hover {
+      background: #e83e56;
+    }
+    
+    .result {
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 15px;
+      border-left: 4px solid #4caf50;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    
+    .result.error {
+      border-left-color: #f44336;
+      background: #ffebee;
+    }
+    
+    .result.success {
+      border-left-color: #4caf50;
+      background: #f1f8e9;
+    }
+    
+    .status {
+      padding: 10px 15px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+    
+    .status.authenticated {
+      background: #c8e6c9;
+      color: #2e7d32;
+    }
+    
+    .status.unauthenticated {
+      background: #ffcdd2;
+      color: #c62828;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #333;
+      font-weight: 600;
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    
+    input:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="text-align:center;margin-bottom:12px;color:#333;">
+      <strong style="font-size:20px;">PublicResolve</strong>
+      <div style="font-size:13px;color:#666;">Where complaints turn into solutions.</div>
+    </div>
+    <h1>👑 Head Admin System Test</h1>
+    
+    <!-- Session Status -->
+    <div class="test-section">
+      <h2>1. Session Status</h2>
+      <div id="sessionStatus" class="status unauthenticated">Checking...</div>
+      <div class="test-buttons">
+        <button onclick="checkSession()">Check Session</button>
+      </div>
+      <div id="sessionResult" class="result"></div>
+    </div>
+    
+    <!-- Login Test -->
+    <div class="test-section">
+      <h2>2. Login Test</h2>
+      <div class="form-group">
+        <label>Username:</label>
+        <input type="text" id="loginUsername" value="admin.govt1" placeholder="admin.govt1">
+      </div>
+      <div class="form-group">
+        <label>Password:</label>
+        <input type="password" id="loginPassword" value="admin@1" placeholder="admin@1">
+      </div>
+      <div class="test-buttons">
+        <button onclick="testLogin()">Login as Head Admin</button>
+        <button class="secondary" onclick="testLoginDistrictAdmin()">Login as District Admin (Test)</button>
+      </div>
+      <div id="loginResult" class="result"></div>
+    </div>
+    
+    <!-- Dashboard Endpoint Tests -->
+    <div class="test-section">
+      <h2>3. Dashboard Endpoints</h2>
+      <div class="test-buttons">
+        <button onclick="testDashboard()">GET /admin/head/dashboard</button>
+        <button onclick="testDistrictAdmins()">GET /admin/head/district-admins</button>
+        <button onclick="testAnalytics()">GET /admin/head/analytics</button>
+        <button onclick="testAllEndpoints()">Test All Endpoints</button>
+      </div>
+      <div id="endpointResult" class="result"></div>
+    </div>
+    
+    <!-- Complaint Details -->
+    <div class="test-section">
+      <h2>4. View Complaint Details</h2>
+      <div class="form-group">
+        <label>Complaint ID:</label>
+        <input type="number" id="complaintId" placeholder="Enter complaint ID" value="1">
+      </div>
+      <div class="test-buttons">
+        <button onclick="testComplaintDetails()">GET /admin/head/complaint/:id</button>
+      </div>
+      <div id="complaintResult" class="result"></div>
+    </div>
+    
+    <!-- Message Test -->
+    <div class="test-section">
+      <h2>5. Send Message to Admin</h2>
+      <div class="form-group">
+        <label>Target Admin ID:</label>
+        <input type="number" id="targetAdminId" placeholder="Enter admin ID" value="21">
+      </div>
+      <div class="form-group">
+        <label>Message:</label>
+        <input type="text" id="messageText" placeholder="Enter message" value="Test message from head admin">
+      </div>
+      <div class="test-buttons">
+        <button onclick="testSendMessage()">POST /admin/head/message-admin</button>
+      </div>
+      <div id="messageResult" class="result"></div>
+    </div>
+    
+    <!-- Logout -->
+    <div class="test-section">
+      <h2>6. Logout</h2>
+      <div class="test-buttons">
+        <button class="secondary" onclick="testLogout()">Logout</button>
+      </div>
+      <div id="logoutResult" class="result"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000';
+    
+    function log(elementId, message, isError = false) {
+      const element = document.getElementById(elementId);
+      if (element) {
+        element.textContent = message;
+        element.className = `result ${isError ? 'error' : 'success'}`;
+      }
+    }
+    
+    function logJSON(elementId, data, isError = false) {
+      log(elementId, JSON.stringify(data, null, 2), isError);
+    }
+    
+    async function checkSession() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/check-session`);
+        const data = await response.json();
+        
+        const statusElement = document.getElementById('sessionStatus');
+        if (data.isLoggedIn && data.role === 'head') {
+          statusElement.className = 'status authenticated';
+          statusElement.textContent = `✅ Authenticated as Head Admin (${data.adminUsername})`;
+        } else if (data.isLoggedIn) {
+          statusElement.className = 'status unauthenticated';
+          statusElement.textContent = `⚠️ Logged in as ${data.role} (${data.adminUsername})`;
+        } else {
+          statusElement.className = 'status unauthenticated';
+          statusElement.textContent = '❌ Not authenticated';
+        }
+        
+        logJSON('sessionResult', data);
+      } catch (error) {
+        log('sessionResult', `Error: ${error.message}`, true);
+      }
+    }
+    
+    async function testLogin() {
+      try {
+        const username = document.getElementById('loginUsername').value;
+        const password = document.getElementById('loginPassword').value;
+        
+        const response = await fetch(`${API_BASE}/admin/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await response.json();
+        
+        logJSON('loginResult', data);
+        
+        if (data.success) {
+          setTimeout(checkSession, 500);
+        }
+      } catch (error) {
+        log('loginResult', `Error: ${error.message}`, true);
+      }
+    }
+    
+    async function testLoginDistrictAdmin() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'adminofThiruvananthapuram', password: 'password123' })
+        });
+        const data = await response.json();
+        
+        logJSON('loginResult', data);
+        
+        if (data.success) {
+          setTimeout(checkSession, 500);
+        }
+      } catch (error) {
+        log('loginResult', `Error: ${error.message}`, true);
+      }
+    }
+    
+    async function testDashboard() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/head/dashboard`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          logJSON('endpointResult', { error: data.error, status: response.status }, true);
+        } else {
+          logJSON('endpointResult', {
+            success: data.success,
+            complaintsCount: data.complaints.length,
+            stats: data.stats
+          });
+        }
+      } catch (error) {
+        log('endpointResult', `Error: ${error.message}`, true);
+      }
+    }
+    
+    async function testDistrictAdmins() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/head/district-admins`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          logJSON('endpointResult', { error: data.error, status: response.status }, true);
+        } else {
+          logJSON('endpointResult', {
+            success: data.success,
+            adminsCount: data.districtAdmins.length,
+            firstAdmin: data.districtAdmins[0]
+          });
+        }
+      } catch (error) {
+        log('endpointResult', `Error: ${error.message}`, true);
+      }
+    }
+    
+    async function testAnalytics() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/head/analytics`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          logJSON('endpointResult', { error: data.error, status: response.status }, true);
+        } else {
+          logJSON('endpointResult', {
+            success: data.success,
+            analyticsCount: data.analytics.length,
+            firstDistrict: data.analytics[0]
+          });
+        }
+      } catch (error) {
+        log('endpointResult', `Error: ${error.message}`, true);
+      }
+    }
+    
+    async function testAllEndpoints() {
+      log('endpointResult', 'Testing all endpoints...');
+      
+      const results = {};
+      
+      try {
+        // Test dashboard
+        const dashRes = await fetch(`${API_BASE}/admin/head/dashboard`);
+        results.dashboard = {
+          status: dashRes.ok ? 'OK' : 'FAILED',
+          complaints: dashRes.ok ? (await dashRes.json()).complaints.length : 'N/A'
+        };
+      } catch (e) {
+        results.dashboard = { error: e.message };
+      }
+      
+      try {
+        // Test district admins
+        const adminsRes = await fetch(`${API_BASE}/admin/head/district-admins`);
+        results.districtAdmins = {
+          status: adminsRes.ok ? 'OK' : 'FAILED',
+          admins: adminsRes.ok ? (await adminsRes.json()).districtAdmins.length : 'N/A'
+        };
+      } catch (e) {
+        results.districtAdmins = { error: e.message };
+      }
+      
+      try {
+        // Test analytics
+        const analyticsRes = await fetch(`${API_BASE}/admin/head/analytics`);
+        results.analytics = {
+          status: analyticsRes.ok ? 'OK' : 'FAILED',
+          districts: analyticsRes.ok ? (await analyticsRes.json()).analytics.length : 'N/A'
+        };
+      } catch (e) {
+        results.analytics = { error: e.message };
+      }
+      
+      logJSON('endpointResult', results);
+    }
+    
+    async function testComplaintDetails() {
+      try {
+        const id = document.getElementById('complaintId').value;
+        const response = await fetch(`${API_BASE}/admin/head/complaint/${id}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          logJSON('complaintResult', { error: data.error, status: response.status }, true);
+        } else {
+          logJSON('complaintResult', {
+            success: data.success,
+            complaintId: data.complaint.id,
+            title: data.complaint.title,
+            status: data.complaint.status
+          });
+        }
+      } catch (error) {
+        log('complaintResult', `Error: ${error.message}`, true);
+      }
+    }
+    
+    async function testSendMessage() {
+      try {
+        const adminId = document.getElementById('targetAdminId').value;
+        const message = document.getElementById('messageText').value;
+        
+        const response = await fetch(`${API_BASE}/admin/head/message-admin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetAdminId: parseInt(adminId), message })
+        });
+        const data = await response.json();
+        
+        logJSON('messageResult', data);
+      } catch (error) {
+        log('messageResult', `Error: ${error.message}`, true);
+      }
+    }
+    
+    async function testLogout() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/logout`);
+        const data = await response.json();
+        
+        logJSON('logoutResult', data);
+        setTimeout(checkSession, 500);
+      } catch (error) {
+        log('logoutResult', `Error: ${error.message}`, true);
+      }
+    }
+    
+    // Check session on load
+    window.addEventListener('load', checkSession);
+  </script>
+</body>
+</html>

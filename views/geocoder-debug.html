@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geocoder Debug Test</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
+  <style>
+    #debugMap {
+      width: 100%;
+      height: 400px;
+      border: 1px solid #ddd;
+    }
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #status { margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Geocoder Debug Test</h1>
+  <div id="status">Loading...</div>
+  <div id="debugMap"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.js"></script>
+  <script>
+    let debugMap;
+    const statusDiv = document.getElementById('status');
+
+    try {
+      statusDiv.textContent = 'Initializing map...';
+
+      // Default center: Kerala region
+      const defaultLat = 10.8505;
+      const defaultLng = 76.2711;
+
+      debugMap = L.map('debugMap').setView([defaultLat, defaultLng], 13);
+
+      // Add OSM tile layer
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(debugMap);
+
+      statusDiv.textContent = 'Map loaded. Testing geocoder...';
+
+      // Test geocoder
+      console.log('L.Control available:', typeof L.Control);
+      console.log('L.Control.geocoder available:', typeof L.Control.geocoder);
+
+      if (typeof L.Control.geocoder === 'function') {
+        const geocoder = L.Control.geocoder({
+          defaultMarkGeocode: false,
+          position: 'topright',
+          placeholder: 'Search for places...',
+          collapsed: false
+        });
+
+        geocoder.on('markgeocode', function(e) {
+          console.log('Geocode result:', e);
+          statusDiv.textContent = 'Search result: ' + e.geocode.name;
+          L.marker(e.geocode.center).addTo(debugMap);
+          debugMap.setView(e.geocode.center, 15);
+        });
+
+        geocoder.addTo(debugMap);
+        statusDiv.textContent = 'Geocoder added successfully! Try searching for "Thiruvananthapuram"';
+
+        // Check if geocoder is visible
+        setTimeout(() => {
+          const geocoderEl = document.querySelector('.leaflet-control-geocoder');
+          if (geocoderEl) {
+            statusDiv.innerHTML += '<br>Geocoder element found and should be visible.';
+          } else {
+            statusDiv.innerHTML += '<br>ERROR: Geocoder element not found!';
+          }
+        }, 500);
+
+      } else {
+        statusDiv.textContent = 'ERROR: L.Control.geocoder is not available!';
+      }
+
+    } catch (error) {
+      statusDiv.textContent = 'Error: ' + error.message;
+      console.error('Debug test error:', error);
+    }
+  </script>
+</body>
+</html>

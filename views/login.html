@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PublicResolve — Where complaints turn into solutions. | Login</title>
+  <meta name="description" content="PublicResolve — Where complaints turn into solutions.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container" style="max-width: 450px; margin-top: 60px;">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; border-radius: 15px; box-shadow: 0 5px 30px rgba(0,0,0,0.2);">
+      <div style="text-align:center;margin-bottom:8px;color:rgba(255,255,255,0.95);">
+        <strong style="font-size:20px;">PublicResolve</strong>
+        <div style="font-size:12px;color:rgba(255,255,255,0.9);">Where complaints turn into solutions.</div>
+      </div>
+      <h1 style="color: white; text-align: center; margin-bottom: 10px;">User Login</h1>
+      <p style="text-align: center; color: rgba(255,255,255,0.9); margin-bottom: 18px;">Access your complaint account</p>
+
+      <div id="alert" class="alert"></div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="emailOrPhone" style="color: white; font-weight: 600;">Email or Mobile Number</label>
+          <input type="text" id="emailOrPhone" name="emailOrPhone" placeholder="Enter your email or 10-digit mobile number" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password" style="color: white; font-weight: 600;">Password</label>
+          <input type="password" id="password" name="password" placeholder="Enter your password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; background: white; color: #667eea; font-weight: bold; padding: 12px; font-size: 16px;">Login</button>
+      </form>
+
+      <p class="text-center mt-20" style="color: white;">
+        Don't have an account? <a href="/register.html" style="color: #fff; font-weight: bold; text-decoration: underline;">Register here</a>
+      </p>
+
+      <p class="text-center mt-15" style="margin-top: 15px;">
+        <a href="/forgot-password.html" style="color: rgba(255,255,255,0.9); font-size: 14px; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.5);">Forgot Password?</a>
+      </p>
+
+      <p class="text-center mt-20">
+        <a href="/" style="color: rgba(255,255,255,0.9); text-decoration: none;">← Back to Home</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="/js/utils.js"></script>
+  <script>
+      document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const emailOrPhone = document.getElementById('emailOrPhone').value.trim();
+      const password = document.getElementById('password').value;
+
+      // Basic validation
+      if (!emailOrPhone || !password) {
+        showAlert('Please enter email/phone and password', 'error');
+        return;
+      }
+
+      try {
+        showLoading();
+        const result = await apiCall('POST', '/login', { emailOrPhone, password });
+
+        if (result.success) {
+          showAlert('Login successful! Redirecting...', 'success');
+          setTimeout(() => {
+            window.location.href = result.redirect;
+          }, 1500);
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+      } finally {
+        hideLoading();
+      }
+    });
+  </script>
+</body>
+</html>

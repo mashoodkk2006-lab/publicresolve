@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR ID Verification Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        select, input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        select:focus, input[type="text"]:focus, input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .file-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 5px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        #result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        #result h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        #result p {
+            margin: 8px 0;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        #result strong {
+            font-weight: 600;
+        }
+
+        .alert {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 3px;
+            font-size: 13px;
+            color: #0c5aa0;
+        }
+
+        .alert strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .id-types {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .id-type-item {
+            padding: 8px;
+            background: #f5f5f5;
+            border-radius: 3px;
+        }
+
+        .id-type-item strong {
+            display: block;
+            color: #333;
+            margin-bottom: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🆔 OCR ID Verification</h1>
+        <p class="subtitle">Test the ID verification system with real ID card images</p>
+
+        <div class="alert">
+            <strong>ℹ️ First Test Notice:</strong>
+            The first request may take 30-60 seconds to complete (downloads OCR language files). Subsequent requests will be faster.
+        </div>
+
+        <form id="verifyForm">
+            <div class="form-group">
+                <label for="id_type">Select ID Type *</label>
+                <select name="id_type" id="id_type" required>
+                    <option value="">-- Choose an ID Type --</option>
+                    <option value="PAN">PAN Card</option>
+                    <option value="AADHAAR">Aadhaar Card</option>
+                    <option value="DRIVING_LICENSE">Driving License</option>
+                    <option value="VOTER_ID">Voter ID</option>
+                </select>
+                <div class="id-types">
+                    <div class="id-type-item">
+                        <strong>PAN:</strong>
+                        AACRP5055K
+                    </div>
+                    <div class="id-type-item">
+                        <strong>Aadhaar:</strong>
+                        1234 5678 9012
+                    </div>
+                    <div class="id-type-item">
+                        <strong>DL:</strong>
+                        DL0120987654321
+                    </div>
+                    <div class="id-type-item">
+                        <strong>Voter ID:</strong>
+                        ABC1234567
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="id_number">ID Number *</label>
+                <input 
+                    type="text" 
+                    name="id_number" 
+                    id="id_number"
+                    placeholder="Enter the ID number shown on the card"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="id_image">Upload ID Card Image *</label>
+                <input 
+                    type="file" 
+                    name="id_image" 
+                    id="id_image"
+                    accept="image/jpeg,image/jpg,image/png,image/gif"
+                    required
+                >
+                <div class="file-info">📷 Supported: JPG, PNG, GIF. Max 10MB</div>
+            </div>
+
+            <button type="submit" id="submitBtn">Verify ID</button>
+        </form>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('verifyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const resultDiv = document.getElementById('result');
+            const submitBtn = document.getElementById('submitBtn');
+
+            // Validation
+            const idType = document.getElementById('id_type').value;
+            const idNumber = document.getElementById('id_number').value;
+            const idImage = document.getElementById('id_image').files[0];
+
+            if (!idType) {
+                showError(resultDiv, 'Please select an ID type');
+                return;
+            }
+
+            if (!idNumber) {
+                showError(resultDiv, 'Please enter the ID number');
+                return;
+            }
+
+            if (!idImage) {
+                showError(resultDiv, 'Please upload an ID card image');
+                return;
+            }
+
+            if (idImage.size > 10 * 1024 * 1024) {
+                showError(resultDiv, 'Image size must be less than 10MB');
+                return;
+            }
+
+            try {
+                submitBtn.disabled = true;
+                resultDiv.innerHTML = `
+                    <div class="success" style="opacity: 0.8;">
+                        <p><span class="spinner"></span>Processing... This may take 10-60 seconds on first run.</p>
+                        <p style="margin-top: 10px; font-size: 12px;">Uploading image and extracting ID from proof...</p>
+                    </div>
+                `;
+                resultDiv.style.display = 'block';
+
+                const response = await fetch('/verify-id', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.match) {
+                    showSuccess(resultDiv, result);
+                } else if (result.success && !result.match) {
+                    showMismatch(resultDiv, result);
+                } else {
+                    showError(resultDiv, result.error || 'Unknown error occurred');
+                }
+            } catch (error) {
+                showError(resultDiv, error.message);
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        function showSuccess(div, result) {
+            div.className = 'success';
+            div.innerHTML = `
+                <h3>✅ Verification Successful!</h3>
+                <p><strong>Extracted ID:</strong> <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">${escapeHtml(result.extracted_id || 'N/A')}</code></p>
+                <p><strong>Provided ID:</strong> <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">${escapeHtml(result.typed_id)}</code></p>
+                <p><strong>ID Type:</strong> ${escapeHtml(result.id_type)}</p>
+                <p><strong>Match:</strong> ${result.match ? '✅ IDs Match' : '❌ IDs Do Not Match'}</p>
+                ${result.duplicate ? '<p><strong style="color: #c9302c;">⚠️ Duplicate ID:</strong> This ID already exists in the system</p>' : ''}
+            `;
+            div.style.display = 'block';
+        }
+
+        function showMismatch(div, result) {
+            div.className = 'error';
+            div.innerHTML = `
+                <h3>❌ ID Mismatch</h3>
+                <p><strong>Problem:</strong> ${escapeHtml(result.error)}</p>
+                <p><strong>Extracted ID:</strong> <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">${escapeHtml(result.extracted_id || 'Could not extract')}</code></p>
+                <p><strong>Provided ID:</strong> <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">${escapeHtml(result.typed_id)}</code></p>
+                <p style="margin-top: 15px; font-size: 13px; color: #555;">
+                    <strong>Suggestions:</strong>
+                    <br>• Ensure the ID card image is clear and well-lit
+                    <br>• Make sure the entire ID number is visible
+                    <br>• Check that you entered the correct ID number
+                    <br>• Try a photo from a different angle
+                </p>
+            `;
+            div.style.display = 'block';
+        }
+
+        function showError(div, message) {
+            div.className = 'error';
+            div.innerHTML = `
+                <h3>❌ Verification Failed</h3>
+                <p><strong>Error:</strong> ${escapeHtml(message)}</p>
+                <p style="margin-top: 15px; font-size: 13px; color: #555;">
+                    <strong>Try this:</strong>
+                    <br>• Reload this page
+                    <br>• Check server is running (<code>node server.js</code>)
+                    <br>• See OCR_TROUBLESHOOTING.md for detailed help
+                </p>
+            `;
+            div.style.display = 'block';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Update placeholder based on selected ID type
+        document.getElementById('id_type').addEventListener('change', (e) => {
+            const placeholders = {
+                'PAN': 'e.g., AACRP5055K',
+                'AADHAAR': 'e.g., 1234 5678 9012',
+                'DRIVING_LICENSE': 'e.g., DL0120987654321',
+                'VOTER_ID': 'e.g., ABC1234567'
+            };
+            const input = document.getElementById('id_number');
+            input.placeholder = placeholders[e.target.value] || 'Enter the ID number';
+        });
+    </script>
+</body>
+</html>

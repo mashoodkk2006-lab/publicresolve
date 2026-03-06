@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PublicResolve — Where complaints turn into solutions. | Messages from Head Admin</title>
+  <meta name="description" content="PublicResolve — Where complaints turn into solutions.">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .message-header {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .messages-wrapper {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      min-height: 300px;
+      max-height: 500px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+    }
+    
+    .message {
+      margin-bottom: 15px;
+      padding: 12px;
+      border-radius: 5px;
+      word-wrap: break-word;
+    }
+    
+    .message.head-admin {
+      background: #f0f0f0;
+      border-left: 4px solid #f5576c;
+    }
+    
+    .message.admin {
+      background: #e8f5e9;
+      border-left: 4px solid #4caf50;
+      margin-left: 30px;
+    }
+    
+    .message-text {
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+    
+    .message-time {
+      font-size: 12px;
+      color: #999;
+    }
+  </style>
+</head>
+<body style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0;">
+  <div class="navbar">
+    <h1>Messages from Head Admin</h1>
+    <div class="navbar-links">
+      <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+      <a href="/admin-dashboard.html">Dashboard</a>
+      <button onclick="adminLogout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="large-container">
+    <div class="dashboard-container" style="max-width: 800px; margin: 0 auto;">
+      <div id="alert" class="alert"></div>
+
+      <!-- Header -->
+      <div class="message-header">
+        <h3>Communication with Head Admin</h3>
+        <p>View and respond to messages from the Head Administrator</p>
+      </div>
+
+      <!-- Messages -->
+      <h3>Conversation History</h3>
+      <div id="messages-container" class="messages-wrapper"></div>
+
+      <!-- Send Message Form -->
+      <form id="messageForm">
+        <div class="form-group">
+          <label for="message">Reply to Head Admin</label>
+          <textarea id="message" name="message" placeholder="Type your response..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Send Reply</button>
+      </form>
+
+      <a href="/admin-dashboard.html" class="btn btn-secondary mt-20" style="display: block; text-align: center;">Back to Dashboard</a>
+    </div>
+  </div>
+
+  <script src="/js/utils.js"></script>
+  <script>
+    async function loadMessages() {
+      try {
+        showLoading();
+        const result = await apiCall('GET', '/admin/my-messages');
+        
+        const messages = result.messages || [];
+
+        // Display messages
+        const messagesContainer = document.getElementById('messages-container');
+        if (messages.length === 0) {
+          messagesContainer.innerHTML = '<p class="text-center text-muted">No messages yet. Wait for the Head Admin to send you a message.</p>';
+        } else {
+          messagesContainer.innerHTML = messages.map(msg => `
+            <div class="message ${msg.sender_role}">
+              <div class="message-text">${msg.message}</div>
+              <div class="message-time">
+                <strong>${msg.sender_role === 'head-admin' ? '👑 Head Admin (' + msg.from_username + ')' : 'You'}</strong> - ${formatDate(msg.created_at)}
+              </div>
+            </div>
+          `).join('');
+          
+          // Scroll to bottom
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+      } catch (error) {
+        console.error('Load messages error:', error);
+        showAlert('Failed to load messages', 'error');
+      } finally {
+        hideLoading();
+      }
+    }
+
+    document.getElementById('messageForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const message = document.getElementById('message').value;
+
+      if (!message.trim()) {
+        showAlert('Message cannot be empty', 'error');
+        return;
+      }
+
+      try {
+        showLoading();
+        const result = await apiCall('POST', '/admin/reply-message', { message });
+        
+        if (result.success) {
+          document.getElementById('message').value = '';
+          showAlert('Reply sent!', 'success');
+          // Reload messages
+          await loadMessages();
+        }
+      } catch (error) {
+        console.error('Send message error:', error);
+        showAlert('Error sending message', 'error');
+      } finally {
+        hideLoading();
+      }
+    });
+
+    // Load messages on page load
+    window.addEventListener('load', loadMessages);
+  </script>
+</body>
+</html>

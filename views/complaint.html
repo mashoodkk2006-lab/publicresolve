@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PublicResolve — Where complaints turn into solutions. | File Complaint</title>
+  <meta name="description" content="PublicResolve — Where complaints turn into solutions.">
+  <link rel="stylesheet" href="/css/style.css">
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="/leaflet/leaflet.css" />
+  <!-- Geocoder CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
+  <style>
+    #locationMap {
+      width: 100%;
+      height: 400px;
+      margin-top: 10px;
+      border-radius: 4px;
+      border: 2px solid #007bff;
+      z-index: 1;
+      position: relative;
+      background-color: #e3f2fd;
+    }
+    .map-loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #666;
+      font-size: 16px;
+      z-index: 1000;
+    }
+    .map-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .map-controls button {
+      flex: 1;
+      min-width: 150px;
+      padding: 10px 15px;
+      background-color: #667eea;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+    .map-controls button:hover {
+      background-color: #5568d3;
+    }
+    .map-controls button.secondary {
+      background-color: #999;
+    }
+    .map-controls button.secondary:hover {
+      background-color: #777;
+    }
+    .leaflet-control-geocoder button {
+      background-color: #667eea;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .leaflet-control-geocoder button:hover {
+      background-color: #5568d3;
+    }
+    .location-info {
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #333;
+    }
+    .location-info.hidden {
+      display: none;
+    }
+    /* Ensure geocoder control is visible */
+    .leaflet-control-geocoder {
+      z-index: 1000 !important;
+      background: white !important;
+      border: 1px solid #ccc !important;
+      border-radius: 4px !important;
+    }
+    .leaflet-control-geocoder input {
+      width: 200px !important;
+      padding: 5px !important;
+      border: 1px solid #ccc !important;
+      border-radius: 4px !important;
+    }
+  </style>
+</head>
+<body style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0;">
+  <div class="navbar">
+    <h1>File New Complaint</h1>
+    <div class="navbar-links">
+      <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+      <a href="/dashboard.html">Dashboard</a>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="large-container">
+    <div class="dashboard-container" style="max-width: 600px; margin: 0 auto;">
+      <div id="alert" class="alert"></div>
+
+      <form id="complaintForm">
+        <div class="form-group">
+          <label for="department">Department</label>
+          <select id="department" name="department" required>
+            <option value="">-- Select Department --</option>
+            <option value="Water Supply">Water Supply</option>
+            <option value="Electricity">Electricity</option>
+            <option value="Roads & Infrastructure">Roads & Infrastructure</option>
+            <option value="Public Health">Public Health</option>
+            <option value="Sanitation">Sanitation</option>
+            <option value="Education">Education</option>
+            <option value="Police">Police</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="district">District</label>
+          <select id="district" name="district" required>
+            <option value="">-- Select District --</option>
+            <option value="Thiruvananthapuram">Thiruvananthapuram</option>
+            <option value="Kollam">Kollam</option>
+            <option value="Pathanamthitta">Pathanamthitta</option>
+            <option value="Alappuzha">Alappuzha</option>
+            <option value="Kottayam">Kottayam</option>
+            <option value="Idukki">Idukki</option>
+            <option value="Ernakulam">Ernakulam</option>
+            <option value="Thrissur">Thrissur</option>
+            <option value="Palakkad">Palakkad</option>
+            <option value="Malappuram">Malappuram</option>
+            <option value="Kozhikode">Kozhikode</option>
+            <option value="Wayanad">Wayanad</option>
+            <option value="Kannur">Kannur</option>
+            <option value="Kasaragod">Kasaragod</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="complaint_text">Complaint Description</label>
+          <textarea id="complaint_text" name="complaint_text" placeholder="Describe your complaint in detail..." required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="location">Location (Where the issue occurred)</label>
+          <div id="mapContainer">
+            <div id="locationMap" style="display: flex; align-items: center; justify-content: center; color: #666; font-size: 16px;">🗺️ Map loading...</div>
+            <div class="map-controls">
+              <button type="button" onclick="getLiveLocation()">📍 Get Live Location</button>
+              <button type="button" class="secondary" onclick="clearLocation()">Clear Location</button>
+            </div>
+            <div id="locationInfo" class="location-info hidden">
+              <strong>Selected Location:</strong><br>
+              Latitude: <span id="latitudeDisplay">-</span><br>
+              Longitude: <span id="longitudeDisplay">-</span><br>
+              Address: <span id="addressDisplay">-</span>
+            </div>
+          </div>
+          <input type="text" id="location" name="location" placeholder="Address or location name">
+          <input type="hidden" id="latitude" name="latitude">
+          <input type="hidden" id="longitude" name="longitude">
+          <small style="color: #999;">Click on the map to select location, use the search box to find places, or use "Get Live Location" button. If no location is selected, the system will attempt to detect it from the uploaded image.</small>
+          <div style="margin-top: 8px; padding: 10px; background-color: #f0f8ff; border: 1px solid #b3d9ff; border-radius: 4px; font-size: 14px; color: #333;">
+            <strong>📍 Location Accuracy Instructions:</strong><br>
+            Please try to use the maximum possible live location accuracy on the map.<br>
+            If you are unable to use live location, ensure that the location you provide is as accurate as possible, with an error of not more than approximately 100 meters.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="proof_image">Upload Proof Image</label>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <input type="file" id="proof_image" name="proof_image" accept="image/*" required>
+            <button type="button" id="openCameraBtn" class="secondary">📷 Use Camera</button>
+            <button type="button" id="clearProofBtn" class="secondary">✖️ Clear</button>
+          </div>
+          <small style="color: #999;">Max 20MB, JPG/PNG only</small>
+
+          <div id="cameraContainer" style="display:none;margin-top:10px;">
+            <video id="cameraVideo" autoplay playsinline style="max-width:100%;border-radius:6px;border:1px solid #ccc;"></video>
+            <div style="margin-top:8px; display:flex; gap:8px;">
+              <button type="button" id="takePhotoBtn" class="secondary">📸 Capture</button>
+              <button type="button" id="closeCameraBtn" class="secondary">Close Camera</button>
+            </div>
+            <canvas id="cameraCanvas" style="display:none;"></canvas>
+            <div id="photoPreview" style="margin-top:8px; display:none;">
+              <strong>Photo Preview:</strong><br>
+              <img id="photoPreviewImg" src="" alt="Photo Preview" style="max-width:100%;border-radius:6px;border:1px solid #ddd;">
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Submit Complaint</button>
+        <a href="/dashboard.html" class="btn btn-secondary">Cancel</a>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/utils.js"></script>
+  <!-- Leaflet Map JS -->
+  <script src="/leaflet/leaflet.js"></script>
+  <!-- Reverse Geocoding API - Updated to latest version -->
+  <script src="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.js"></script>
+  
+  <script>
+    // Test if Leaflet loads
+    console.log('Script started loading...');
+
+    let map;
+    let mapMarker = null;
+    let selectedLat = null;
+    let selectedLng = null;
+    let cameraStream = null;
+    let capturedProofBlob = null;
+
+    // Initialize the map (assign to global `map` so other functions can use it)
+    function testMap() {
+      console.log('Testing map creation...');
+      try {
+        if (typeof L === 'undefined') {
+          console.error('Leaflet not loaded');
+          return;
+        }
+
+        const container = document.getElementById('locationMap');
+        if (!container) {
+          console.error('Container not found');
+          return;
+        }
+
+        console.log('Creating map...');
+
+        // Create global map instance
+        map = L.map('locationMap', {
+          center: [10.8505, 76.2711],
+          zoom: 10
+        });
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Add a default marker (non-intrusive)
+        L.marker([10.8505, 76.2711]).addTo(map)
+          .bindPopup('Test marker - Kerala');
+
+        // Add geocoder control if available
+        if (typeof L.Control !== 'undefined' && typeof L.Control.Geocoder !== 'undefined') {
+          L.Control.geocoder({ placeholder: 'Search location...' }).addTo(map);
+        }
+
+        // Let users click the map to place a marker
+        map.on('click', function(e) {
+          placeMarker(e.latlng.lat, e.latlng.lng);
+        });
+
+        console.log('Map created successfully!');
+      } catch (error) {
+        console.error('Test map failed:', error);
+      }
+    }
+
+    // Initialize map on page load
+    window.addEventListener('load', () => {
+      console.log('Page loaded, initializing map...');
+
+      // Test if map container exists
+      const testContainer = document.getElementById('locationMap');
+      if (testContainer) {
+        console.log('Map container exists on page load');
+        console.log('Container display:', getComputedStyle(testContainer).display);
+        console.log('Container visibility:', getComputedStyle(testContainer).visibility);
+        console.log('Container dimensions:', testContainer.offsetWidth, 'x', testContainer.offsetHeight);
+      } else {
+        console.error('Map container does not exist on page load');
+      }
+
+      // Try simple test first
+      setTimeout(() => {
+        testMap();
+      }, 1000);
+
+      // Attach camera button handlers
+      const openCameraBtn = document.getElementById('openCameraBtn');
+      const takePhotoBtn = document.getElementById('takePhotoBtn');
+      const closeCameraBtn = document.getElementById('closeCameraBtn');
+      const clearProofBtn = document.getElementById('clearProofBtn');
+
+      if (openCameraBtn) openCameraBtn.addEventListener('click', openCamera);
+      if (takePhotoBtn) takePhotoBtn.addEventListener('click', takePhoto);
+      if (closeCameraBtn) closeCameraBtn.addEventListener('click', closeCamera);
+      if (clearProofBtn) clearProofBtn.addEventListener('click', clearCapturedProof);
+    });
+
+
+
+    function placeMarker(lat, lng) {
+      selectedLat = lat;
+      selectedLng = lng;
+
+      // Remove existing marker
+      if (mapMarker) {
+        map.removeLayer(mapMarker);
+      }
+
+      // Place new marker
+      mapMarker = L.marker([lat, lng], {
+        draggable: true
+      }).addTo(map);
+
+      // Update marker position on drag
+      mapMarker.on('dragend', () => {
+        const newLat = mapMarker.getLatLng().lat;
+        const newLng = mapMarker.getLatLng().lng;
+        updateLocationInfo(newLat, newLng);
+      });
+
+      // Update location info
+      updateLocationInfo(lat, lng);
+
+      // Center map on marker
+      map.setView([lat, lng], 15);
+    }
+
+    function updateLocationInfo(lat, lng) {
+      selectedLat = lat;
+      selectedLng = lng;
+
+      document.getElementById('latitude').value = lat.toFixed(8);
+      document.getElementById('longitude').value = lng.toFixed(8);
+      document.getElementById('latitudeDisplay').textContent = lat.toFixed(8);
+      document.getElementById('longitudeDisplay').textContent = lng.toFixed(8);
+
+      // Show location info
+      document.getElementById('locationInfo').classList.remove('hidden');
+
+      // Reverse geocoding to get address
+      getAddressFromCoordinates(lat, lng);
+    }
+
+    function getAddressFromCoordinates(lat, lng) {
+      // Using OpenStreetMap Nominatim API for reverse geocoding
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          const address = data.address?.road || data.address?.suburb || data.address?.city || data.address?.county || 'Location selected';
+          document.getElementById('addressDisplay').textContent = address;
+          document.getElementById('location').value = address;
+        })
+        .catch(error => {
+          console.error('Error getting address:', error);
+          document.getElementById('addressDisplay').textContent = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        });
+    }
+
+    // Camera / Capture functions for proof image
+    async function openCamera() {
+      const container = document.getElementById('cameraContainer');
+      const video = document.getElementById('cameraVideo');
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showAlert('Camera not supported on this device/browser', 'error');
+        return;
+      }
+
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+        video.srcObject = cameraStream;
+        container.style.display = 'block';
+        document.getElementById('photoPreview').style.display = 'none';
+      } catch (err) {
+        console.error('Error opening camera:', err);
+        showAlert('Unable to access camera. Check permissions.', 'error');
+      }
+    }
+
+    function closeCamera() {
+      const container = document.getElementById('cameraContainer');
+      const video = document.getElementById('cameraVideo');
+      if (cameraStream) {
+        const tracks = cameraStream.getTracks();
+        tracks.forEach(t => t.stop());
+        cameraStream = null;
+      }
+      video.srcObject = null;
+      container.style.display = 'none';
+    }
+
+    function takePhoto() {
+      const video = document.getElementById('cameraVideo');
+      const canvas = document.getElementById('cameraCanvas');
+      const preview = document.getElementById('photoPreview');
+      const previewImg = document.getElementById('photoPreviewImg');
+
+      const w = video.videoWidth || 1280;
+      const h = video.videoHeight || 720;
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, w, h);
+
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          showAlert('Failed to capture photo', 'error');
+          return;
+        }
+        capturedProofBlob = blob;
+        const url = URL.createObjectURL(blob);
+        previewImg.src = url;
+        preview.style.display = 'block';
+        // set file input to empty to avoid confusion
+        document.getElementById('proof_image').value = '';
+        showAlert('Photo captured. It will be submitted as proof.', 'info');
+      }, 'image/jpeg', 0.9);
+    }
+
+    function clearCapturedProof() {
+      capturedProofBlob = null;
+      const preview = document.getElementById('photoPreview');
+      const previewImg = document.getElementById('photoPreviewImg');
+      previewImg.src = '';
+      preview.style.display = 'none';
+      document.getElementById('proof_image').value = '';
+      showAlert('Proof cleared', 'info');
+    }
+
+    function getLiveLocation() {
+      if (!navigator.geolocation) {
+        showAlert('Geolocation is not supported by your browser', 'error');
+        return;
+      }
+
+      showAlert('Getting your location...', 'info');
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          placeMarker(lat, lng);
+          showAlert('Location obtained successfully!', 'success');
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          showAlert('Unable to get your location. Please click on the map to select location.', 'error');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    }
+
+    function clearLocation() {
+      if (mapMarker) {
+        map.removeLayer(mapMarker);
+        mapMarker = null;
+      }
+      selectedLat = null;
+      selectedLng = null;
+      document.getElementById('latitude').value = '';
+      document.getElementById('longitude').value = '';
+      document.getElementById('location').value = '';
+      document.getElementById('latitudeDisplay').textContent = '-';
+      document.getElementById('longitudeDisplay').textContent = '-';
+      document.getElementById('addressDisplay').textContent = '-';
+      document.getElementById('locationInfo').classList.add('hidden');
+      showAlert('Location cleared', 'info');
+    }
+
+    document.getElementById('complaintForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const department = document.getElementById('department').value;
+      const district = document.getElementById('district').value;
+      const complaintText = document.getElementById('complaint_text').value;
+      const location = document.getElementById('location').value;
+      const latitude = document.getElementById('latitude').value;
+      const longitude = document.getElementById('longitude').value;
+
+      if (!department || !district || !complaintText) {
+        showAlert('Please fill in all required fields', 'error');
+        return;
+      }
+
+      // prefer captured photo blob if present
+      let proofImageFile = null;
+      const fileInput = document.getElementById('proof_image');
+      const selectedFile = fileInput.files[0];
+
+      if (capturedProofBlob) {
+        proofImageFile = new File([capturedProofBlob], 'captured.jpg', { type: capturedProofBlob.type || 'image/jpeg' });
+      } else if (selectedFile) {
+        proofImageFile = selectedFile;
+      }
+
+      if (!proofImageFile) {
+        showAlert('Please upload or capture a proof image', 'error');
+        return;
+      }
+
+      if (proofImageFile.size > 20 * 1024 * 1024) {
+        showAlert('File size must not exceed 20MB', 'error');
+        return;
+      }
+
+      // If no location selected, inform user that it will be detected from image
+      if (!latitude || !longitude) {
+        if (!confirm('No location selected. The system will attempt to detect location from the uploaded image. Continue?')) {
+          return;
+        }
+      }
+
+      const formData = new FormData();
+      formData.append('department', department);
+      formData.append('district', district);
+      formData.append('complaint_text', complaintText);
+      formData.append('location', location);
+      formData.append('latitude', latitude);
+      formData.append('longitude', longitude);
+      formData.append('proof_image', proofImageFile);
+
+      try {
+        showLoading();
+        const result = await apiCallWithFile('POST', '/submit-complaint', formData);
+        
+        if (result.success) {
+          showAlert('Complaint submitted successfully!', 'success');
+          setTimeout(() => {
+            window.location.href = '/dashboard.html';
+          }, 1500);
+        }
+      } catch (error) {
+        console.error('Complaint submission error:', error);
+      } finally {
+        hideLoading();
+      }
+    });
+  </script>
+</body>
+</html>

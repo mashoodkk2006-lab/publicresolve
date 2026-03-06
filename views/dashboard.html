@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PublicResolve — Where complaints turn into solutions. | Dashboard</title>
+  <meta name="description" content="PublicResolve — Where complaints turn into solutions.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0;">
+  <div class="navbar">
+    <h1>Dashboard</h1>
+    <div class="navbar-links">
+      <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="large-container">
+    <div class="dashboard-container">
+      <div id="alert" class="alert"></div>
+
+      <!-- User Info -->
+      <div id="userInfo"></div>
+
+      <!-- New Complaint Button -->
+      <div style="text-align: center; margin-bottom: 30px;">
+        <a href="/complaint.html" class="btn btn-primary">File New Complaint</a>
+      </div>
+
+      <!-- Complaints List -->
+      <h2>Your Complaints</h2>
+      <div id="complaints-list"></div>
+    </div>
+  </div>
+
+  <script src="/js/utils.js"></script>
+  <script>
+    async function loadDashboard() {
+      try {
+        showLoading();
+        const result = await apiCall('GET', '/dashboard');
+        
+        const user = result.user;
+        const complaints = result.complaints;
+
+        // Display user info
+        document.getElementById('userInfo').innerHTML = `
+          <div class="user-info">
+            <h3>Welcome, ${user.full_name}!</h3>
+            <div class="user-detail">
+              <span class="user-detail-label">Email:</span>
+              <span class="user-detail-value">${user.email}</span>
+            </div>
+            <div class="user-detail">
+              <span class="user-detail-label">Phone:</span>
+              <span class="user-detail-value">${user.phone}</span>
+            </div>
+            <div class="user-detail">
+              <span class="user-detail-label">Address:</span>
+              <span class="user-detail-value">${user.address}</span>
+            </div>
+            <div class="user-detail">
+              <span class="user-detail-label">ID Proof Type:</span>
+              <span class="user-detail-value">${user.id_proof_type}</span>
+            </div>
+            <div class="user-detail">
+              <span class="user-detail-label">Member Since:</span>
+              <span class="user-detail-value">${formatDate(user.created_at)}</span>
+            </div>
+          </div>
+        `;
+
+        // Display complaints
+        renderComplaintsList(complaints);
+      } catch (error) {
+        console.error('Dashboard error:', error);
+        showAlert('Failed to load dashboard', 'error');
+      } finally {
+        hideLoading();
+      }
+    }
+
+    // Load dashboard on page load
+    window.addEventListener('load', loadDashboard);
+  </script>
+</body>
+</html>

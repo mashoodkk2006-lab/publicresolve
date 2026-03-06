@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PublicResolve — Register</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .registration-container {
+      max-width: 600px;
+      margin: 60px auto;
+      padding: 20px;
+    }
+    .step {
+      display: none;
+    }
+    .step.active {
+      display: block;
+    }
+    .step-title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+    .step-info {
+      background: #e8f4f8;
+      padding: 12px;
+      border-left: 4px solid #2196F3;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #555;
+    }
+    .otp-input-group {
+      display: flex;
+      gap: 8px;
+      margin: 20px 0;
+      justify-content: center;
+    }
+    .otp-digit {
+      width: 50px;
+      height: 50px;
+      font-size: 24px;
+      text-align: center;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+    .otp-digit:focus {
+      border-color: #2196F3;
+      outline: none;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #2c3e50;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #2196F3;
+      box-shadow: 0 0 5px rgba(33, 150, 243, 0.3);
+    }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      width: 100%;
+      margin-top: 10px;
+    }
+    .btn-primary {
+      background-color: #2196F3;
+      color: white;
+    }
+    .btn-primary:hover {
+      background-color: #1976D2;
+    }
+    .btn-secondary {
+      background-color: #757575;
+      color: white;
+      margin-top: 10px;
+    }
+    .btn-secondary:hover {
+      background-color: #616161;
+    }
+    .alert {
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .alert.show {
+      display: block;
+    }
+    .alert.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .alert.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .resend-otp {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 14px;
+    }
+    .resend-otp button {
+      background: none;
+      border: none;
+      color: #2196F3;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .resend-otp button:hover {
+      color: #1976D2;
+    }
+    .resend-otp.disabled button {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .timer {
+      color: #999;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    .loading-spinner {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+    .loading-spinner.show {
+      display: block;
+    }
+    .loading-spinner::before {
+      content: '';
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #2196F3;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading-text {
+      display: inline-block;
+      color: #2196F3;
+      font-weight: 500;
+    }
+    .id-verification-status {
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      display: none;
+      font-weight: 500;
+    }
+    .id-verification-status.show {
+      display: block;
+    }
+    .id-verification-status.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .id-verification-status.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .id-verification-status.checking {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="registration-container">
+    <h1>Create an Account</h1>
+    <div id="alert" class="alert"></div>
+
+    <!-- STEP 1: USER INFORMATION -->
+    <div id="step1" class="step active">
+      <div class="step-title">Step 1: Your Information</div>
+      <div class="step-info">
+        📝 Please fill in your details. We'll send a verification code to your email.
+      </div>
+      <form id="step1Form">
+        <div class="form-group">
+          <label for="full_name">Full Name *</label>
+          <input type="text" id="full_name" name="full_name" required />
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address *</label>
+          <input type="email" id="email" name="email" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Password *</label>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="password" id="password" name="password" minlength="6" required style="flex: 1;" />
+            <button type="button" onclick="togglePasswordVisibility('password')" style="padding: 8px 12px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;" title="Show/hide password">👁️</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone Number (10 digits) *</label>
+          <input type="tel" id="phone" name="phone" pattern="\d{10}" placeholder="9876543210" required />
+        </div>
+        <div class="form-group">
+          <label for="address">Address *</label>
+          <input type="text" id="address" name="address" required />
+        </div>
+        <div class="form-group">
+          <label for="place">Place / City *</label>
+          <input type="text" id="place" name="place" required />
+        </div>
+        <div class="form-group">
+          <label for="district">District *</label>
+          <input type="text" id="district" name="district" required />
+        </div>
+        <div class="form-group">
+          <label for="dob">Date of Birth *</label>
+          <input type="date" id="dob" name="dob" required />
+        </div>
+        <div class="form-group">
+          <label for="pin_code">PIN Code (6 digits) *</label>
+          <input type="text" id="pin_code" name="pin_code" pattern="\d{6}" maxlength="6" placeholder="123456" required />
+        </div>
+        <!-- ID verification has been removed per updated requirements -->
+        <button type="submit" class="btn btn-primary">Send OTP →</button>
+      </form>
+      <p style="margin-top: 1rem; text-align: center;">
+        Already have an account? <a href="/login_new.html">Login here</a>
+      </p>
+    </div>
+
+    <!-- STEP 2: OTP VERIFICATION -->
+    <div id="step2" class="step">
+      <div class="step-title">Step 2: Verify Your Email</div>
+      <div class="step-info">
+        ✉️ We've sent a 6-digit verification code to your email. Please enter it below.
+      </div>
+      <form id="step2Form">
+        <div class="form-group" style="text-align: center; color: #666; font-size: 14px;">
+          Code sent to: <strong id="emailDisplay"></strong>
+        </div>
+        <div class="form-group">
+          <label style="text-align: center;">Enter 6-Digit OTP *</label>
+          <div class="otp-input-group">
+            <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+            <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+            <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+            <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+            <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+            <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Verify & Complete Registration</button>
+      </form>
+      <div class="resend-otp" id="resendContainer">
+        <div>Didn't receive code?</div>
+        <button id="resendBtn" onclick="resendOTP()">Resend OTP</button>
+        <div class="timer" id="timer"></div>
+      </div>
+      <button class="btn btn-secondary" onclick="goBackToStep1()">← Back to Edit Info</button>
+    </div>
+
+    <!-- STEP 3: SUCCESS -->
+    <div id="step3" class="step">
+      <div style="text-align: center;">
+        <div style="font-size: 48px; margin-bottom: 20px;">✅</div>
+        <h2>Registration Successful!</h2>
+        <p style="color: #666; margin: 20px 0;">
+          Your account has been created successfully. Your email has been verified.
+        </p>
+        <button class="btn btn-primary" onclick="goToLogin()">Go to Login</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/utils.js"></script>
+  <script>
+    let registrationData = {};
+    let currentEmail = '';
+    let resendTimer = 0;
+
+    function togglePasswordVisibility(fieldId) {
+      const field = document.getElementById(fieldId);
+      if (field.type === 'password') {
+        field.type = 'text';
+      } else {
+        field.type = 'password';
+      }
+    }
+
+    // STEP 1: SUBMIT REGISTRATION DATA AND VERIFY ID
+    document.getElementById('step1Form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const form = e.target;
+      
+      // Validate form
+      if (!form.checkValidity()) {
+        showAlert('Please fill in all required fields correctly', 'error');
+        return;
+      }
+
+      // Collect all form data and trim values
+      const formData = new FormData(form);
+      registrationData = Object.fromEntries(formData);
+      
+      // Trim all string values
+      Object.keys(registrationData).forEach(key => {
+        if (typeof registrationData[key] === 'string') {
+          registrationData[key] = registrationData[key].trim();
+        }
+      });
+      
+      // Verify all fields are non-empty after trimming
+      const emptyFields = Object.entries(registrationData)
+        .filter(([key, value]) => !value || (typeof value === 'string' && value.trim() === ''))
+        .map(([key]) => key);
+      
+      if (emptyFields.length > 0) {
+        showAlert(`Please fill in: ${emptyFields.join(', ')}`, 'error');
+        return;
+      }
+      
+      currentEmail = registrationData.email;
+
+      try {
+        showLoading();
+        clearAlert();
+        
+        // send OTP for email verification
+        const otpResponse = await fetch('/api/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: currentEmail,
+            registrationData: registrationData
+          })
+        });
+
+        const otpResult = await otpResponse.json();
+
+        if (otpResult.success) {
+          document.getElementById('emailDisplay').textContent = currentEmail;
+          showAlert('✅ Verification code has been sent to your email!', 'success');
+          setTimeout(() => {
+            goToStep2();
+            resetResendTimer();
+          }, 1500);
+        } else {
+          showAlert(otpResult.error || 'Failed to send OTP', 'error');
+        }
+      } catch (err) {
+        console.error(err);
+        showAlert('❌ Server error: ' + err.message, 'error');
+      } finally {
+        hideLoading();
+      }
+    });
+
+    // STEP 2: VERIFY OTP
+    document.getElementById('step2Form').addEventListener('submit', async e => {
+      e.preventDefault();
+
+      // Gather OTP from digit inputs
+      const otpDigits = document.querySelectorAll('.otp-digit');
+      const otp = Array.from(otpDigits).map(input => input.value).join('');
+
+      if (otp.length !== 6) {
+        showAlert('Please enter a 6-digit code', 'error');
+        return;
+      }
+
+      try {
+        showLoading();
+
+        const verifyResponse = await fetch('/api/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: currentEmail,
+            otp: otp
+          })
+        });
+
+        const verifyResult = await verifyResponse.json();
+
+        if (verifyResult.success) {
+          showAlert('✅ ' + verifyResult.message, 'success');
+          setTimeout(() => {
+            goToStep3();
+          }, 1000);
+        } else {
+          showAlert(verifyResult.error || 'Failed to verify OTP', 'error');
+          // Clear OTP inputs on error
+          document.querySelectorAll('.otp-digit').forEach(input => {
+            input.value = '';
+          });
+          document.querySelectorAll('.otp-digit')[0].focus();
+        }
+      } catch (err) {
+        console.error(err);
+        showAlert('Server error: ' + err.message, 'error');
+      } finally {
+        hideLoading();
+      }
+    });
+
+    // NAVIGATION FUNCTIONS
+    function goToStep2() {
+      document.getElementById('step1').classList.remove('active');
+      document.getElementById('step2').classList.add('active');
+      document.querySelectorAll('.otp-digit')[0].focus();
+    }
+
+    function goToStep3() {
+      document.getElementById('step2').classList.remove('active');
+      document.getElementById('step3').classList.add('active');
+    }
+
+    function goBackToStep1() {
+      document.getElementById('step2').classList.remove('active');
+      document.getElementById('step1').classList.add('active');
+      clearAlert();
+    }
+
+    function goToLogin() {
+      window.location.href = '/login_new.html';
+    }
+
+    // RESEND OTP
+    function resendOTP() {
+      if (resendTimer > 0) return;
+      
+      const btn = document.getElementById('resendBtn');
+      btn.disabled = true;
+      
+      // Resend OTP
+      fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: currentEmail,
+          registrationData: registrationData
+        })
+      })
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) {
+          showAlert('✅ New code sent to your email', 'success');
+          resetResendTimer();
+          // Clear OTP inputs
+          document.querySelectorAll('.otp-digit').forEach(input => input.value = '');
+          document.querySelectorAll('.otp-digit')[0].focus();
+        } else {
+          showAlert(result.error || 'Failed to resend OTP', 'error');
+          btn.disabled = false;
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        showAlert('Server error', 'error');
+        btn.disabled = false;
+      });
+    }
+
+    // TIMER FOR RESEND
+    function resetResendTimer() {
+      resendTimer = 60;
+      updateResendTimer();
+      document.getElementById('resendBtn').disabled = true;
+      document.getElementById('resendContainer').classList.add('disabled');
+    }
+
+    function updateResendTimer() {
+      if (resendTimer > 0) {
+        document.getElementById('timer').textContent = `Resend available in ${resendTimer}s`;
+        resendTimer--;
+        setTimeout(updateResendTimer, 1000);
+      } else {
+        document.getElementById('timer').textContent = '';
+        document.getElementById('resendBtn').disabled = false;
+        document.getElementById('resendContainer').classList.remove('disabled');
+      }
+    }
+
+    // ALERT HELPERS
+    function showAlert(message, type) {
+      const alertEl = document.getElementById('alert');
+      alertEl.textContent = message;
+      alertEl.className = `alert show ${type}`;
+      // Auto-dismiss success alerts after 5 seconds
+      if (type === 'success') {
+        setTimeout(() => clearAlert(), 5000);
+      }
+    }
+
+    function clearAlert() {
+      document.getElementById('alert').classList.remove('show');
+    }
+
+    // OTP DIGIT INPUT AUTO-ADVANCE
+    document.addEventListener('input', e => {
+      if (e.target.classList.contains('otp-digit')) {
+        if (e.target.value.length === 1) {
+          const next = e.target.nextElementSibling;
+          if (next && next.classList.contains('otp-digit')) {
+            next.focus();
+          }
+        }
+      }
+    });
+
+    // OTP DIGIT BACKSPACE HANDLING
+    document.addEventListener('keydown', e => {
+      if (e.target.classList.contains('otp-digit') && e.key === 'Backspace') {
+        if (e.target.value === '') {
+          const prev = e.target.previousElementSibling;
+          if (prev && prev.classList.contains('otp-digit')) {
+            prev.focus();
+          }
+        }
+      }
+    });
+
+    // PREVENT NON-NUMERIC INPUT IN OTP FIELDS
+    document.addEventListener('keypress', e => {
+      if (e.target.classList.contains('otp-digit') && !/[0-9]/.test(e.key)) {
+        e.preventDefault();
+      }
+    });
+
+  </script>
+</body>
+</html>

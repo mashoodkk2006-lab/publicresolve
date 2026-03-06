@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PublicResolve — Where complaints turn into solutions. | Complaint Messages - Admin</title>
+  <meta name="description" content="PublicResolve — Where complaints turn into solutions.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0;">
+  <div class="navbar">
+    <h1>Complaint Messages</h1>
+    <div class="navbar-links">
+      <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+      <a href="/admin-dashboard.html">Dashboard</a>
+      <button onclick="adminLogout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="large-container">
+    <div class="dashboard-container" style="max-width: 800px; margin: 0 auto;">
+      <div id="alert" class="alert"></div>
+
+      <!-- Complaint Info -->
+      <div id="complaintInfo"></div>
+
+      <!-- Messages -->
+      <h3 style="margin-top: 30px;">Correspondence</h3>
+      <div id="messages-container" class="messages-container"></div>
+
+      <!-- Send Message Form -->
+      <form id="messageForm">
+        <div class="form-group">
+          <label for="message">Send Message</label>
+          <textarea id="message" name="message" placeholder="Type your message..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Send Message</button>
+      </form>
+
+      <a href="/admin-dashboard.html" class="btn btn-secondary mt-20" style="display: block; text-align: center;">Back to Dashboard</a>
+    </div>
+  </div>
+
+  <script src="/js/utils.js"></script>
+  <script>
+    const complaintId = getQueryParam('id');
+
+    async function loadMessages() {
+      if (!complaintId) {
+        showAlert('Invalid complaint ID', 'error');
+        return;
+      }
+
+      try {
+        showLoading();
+        const result = await apiCall('GET', `/admin/complaint/${complaintId}/messages`);
+        
+        const complaint = result.complaint;
+        const messages = result.messages;
+
+        // Display complaint info with user details
+        document.getElementById('complaintInfo').innerHTML = `
+          <div class="card">
+            <div class="card-title">Department: ${complaint.department}</div>
+            <span class="card-badge badge-${complaint.status.toLowerCase().replace(' ', '-')}">${complaint.status}</span>
+            <p class="card-text"><strong>Location:</strong> ${complaint.location}</p>
+            <p class="card-text"><strong>Description:</strong> ${complaint.complaint_text}</p>
+            <p class="card-text text-muted"><strong>Filed on:</strong> ${formatDate(complaint.created_at)}</p>
+            <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
+            <p class="card-text"><strong>User ID:</strong> ${complaint.user_id}</p>
+            <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
+            <p class="card-text"><strong>Complaint Proof:</strong></p>
+            <img src="/image/complaint-proof/${complaint.id}" alt="Complaint Proof" style="max-width: 100%; height: auto; border-radius: 5px; cursor: pointer;" onclick="viewProof('/image/complaint-proof/${complaint.id}')">
+            ${complaint.status === 'Resolved' ? `
+              <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
+              <p class="card-text"><strong>Resolution Proof:</strong></p>
+              <img src="/image/resolution-proof/${complaint.id}" alt="Resolution Proof" style="max-width: 100%; height: auto; border-radius: 5px; cursor: pointer;" onclick="viewProof('/image/resolution-proof/${complaint.id}')">
+            ` : ''}
+          </div>
+        `;
+
+        // Display messages
+        const messagesContainer = document.getElementById('messages-container');
+        if (messages.length === 0) {
+          messagesContainer.innerHTML = '<p class="text-center text-muted">No messages yet. Start a conversation with the user.</p>';
+        } else {
+          messagesContainer.innerHTML = messages.map(msg => `
+            <div class="message ${msg.sender_role}">
+              <div class="message-text">${msg.message}</div>
+              <div class="message-time">
+                <strong>${msg.sender_role === 'user' ? 'User' : 'You (Admin)'}</strong> - ${formatDate(msg.created_at)}
+              </div>
+            </div>
+          `).join('');
+          
+          // Scroll to bottom
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+      } catch (error) {
+        console.error('Load messages error:', error);
+        showAlert('Failed to load messages', 'error');
+      } finally {
+        hideLoading();
+      }
+    }
+
+    document.getElementById('messageForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const message = document.getElementById('message').value;
+
+      if (!message.trim()) {
+        showAlert('Message cannot be empty', 'error');
+        return;
+      }
+
+      try {
+        showLoading();
+        const result = await apiCall('POST', `/admin/complaint/${complaintId}/message`, { message });
+        
+        if (result.success) {
+          document.getElementById('message').value = '';
+          showAlert('Message sent!', 'success');
+          // Reload messages
+          await loadMessages();
+        }
+      } catch (error) {
+        console.error('Send message error:', error);
+      } finally {
+        hideLoading();
+      }
+    });
+
+    // Load messages on page load
+    window.addEventListener('load', loadMessages);
+  </script>
+</body>
+</html>
