@@ -1,5 +1,5 @@
 const express = require("express");
-
+const cors = require("cors");
 // Load environment variables
 require('dotenv').config();
 
@@ -23,7 +23,14 @@ const OCRVerificationService = require('./modules/ocr-service');
 const ocrService = new OCRVerificationService(db);
 
 const app = express();
+// Trust proxy for Render
+app.set("trust proxy", 1);
 
+// Enable CORS
+app.use(cors({
+  origin: "https://publicresolve.onrender.com",
+  credentials: true
+}));
 // Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -45,8 +52,13 @@ app.get('/register.html', (req, res) => {
 app.use(session({
   secret: "complaint_secret",
   resave: false,
-  saveUninitialized: true,
-  cookie: { maxAge: 24 * 60 * 60 * 1000 } // 24 hours
+  saveUninitialized: false,
+  cookie: {
+    secure: true,
+    httpOnly: true,
+    sameSite: "none",
+    maxAge: 24 * 60 * 60 * 1000
+  }
 }));
 
 // Multer setup for file uploads
