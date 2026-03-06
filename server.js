@@ -836,7 +836,6 @@ app.get("/admin/", (req, res) => {
 // Register
 app.post("/register", async (req, res) => {
   try {
-    let { full_name, email, password, phone, address, place, district, dob, pin_code } = req.body;
     
     // Trim all string fields
     full_name = full_name ? full_name.trim() : '';
