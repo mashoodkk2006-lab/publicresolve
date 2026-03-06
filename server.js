@@ -2312,8 +2312,10 @@ app.get('/__whoami', (req, res) => {
   res.send('EMAIL_OTP');
 });
 
-const server = app.listen(3000, () => {
-  console.log("🚀 Server started on http://localhost:3000");
+const PORT = process.env.PORT || 3000;
+
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Server started on port ${PORT}`);
   console.log("[OCR Service] Tesseract will initialize on first OCR request (lazy loading)");
 });
 
